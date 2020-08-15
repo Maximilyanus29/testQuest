@@ -6,167 +6,83 @@
 class Controller
 {
 	
-	private $data;
-	private $actions;
 
-	private function filterData($data)
+	private function router()
 	{
-		$rules=array(
-			'nickname'=> array('min'=>6,'max'=>50),
-			'description'=> array('min'=>5,'max'=>1000),
-			'rating'=> array('min'=>1,'max'=>5),
-			'link_photo1'=> array('min'=>5,'max'=>255),
-			'link_photo2'=> array('min'=>5,'max'=>255),
-			'link_photo3'=> array('min'=>5,'max'=>255),
-		);
 
-		foreach ($data as $key => $value) {
+		$route=new Request();
 
 
-			if ($key=='rating') {
-					
-					if (intval($value)>$rules[$key]['min']&&intval($value)<$rules[$key]['max']) {
-						
-					}
-					else{
-						echo 'поле '.$key." должно быть в пределак от ".$rules[$key]['min']."до ".$rules[$key]['max']." числа";
+		//http://quest/api/getAllComment/nickname/11111111/page/1
+		$route->get('api/getAllComment/nickname/\w+/page/\d+',function($params)
+		{
 
-						die();
-					}
-				}
+			$data = ReviewModel::findAll(['nickname'=>$params[3]],['date'=>'asc']);
 
-			else{
+			$linkerPage = array_chunk($data, 10);
 
-				if (iconv_strlen($value)>$rules[$key]['min']&&iconv_strlen($value)<$rules[$key]['max']) {
+			if (isset($linkerPage[$params[5]-1])) {
+				return $this->send($linkerPage[$params[5]-1]);
+			}
+	
+
 			
-				}
+		});
 
-				else{
-					echo 'поле '.$key." должно быть в пределак от ".$rules[$key]['min']."до ".$rules[$key]['max']." символов";
-					die();
-					}
 
+		//http://quest/api/getOneComment/nickname/11111111/?fields[id]&fields[description]
+		$route->get('api/getOneComment/nickname/\w+/.+',function($params)
+		{
+
+			if ($_GET['fields']) {
+
+				$data = ReviewModel::findOne(['nickname'=>$params[3]],$_GET['fields']);
 
 			}
+			else{
+				$data = ReviewModel::findOne(['nickname'=>$params[3]]);
+			}
+			
+
+			return $this->send($data);
+
 
 			
-		}
+		});
 
-		return true;
+		//$params = $_POST
+		$route->post('api/addComment',function($params)
+		{
 
-	}
+			$ar=new ReviewModel();
 
+			$ar->nickname=$params['nickname'];
+			$ar->description=$params['description'];
+			$ar->rating=$params['rating'];
+			$ar->link_photo1=$params['link_photo1'];
+			$ar->link_photo2=$params['link_photo2'];
+			$ar->link_photo3=$params['link_photo3'];
 
+			$res = $ar->save();
 
-	private function getData()
-	{
-
-
-		$request = new Request();
-
-		$request->init();
-
-		$action = $request->get_action();
-
-
-
-
-
-		$connection = new Db();
-
-		switch ($action) {
-
-			case 'getAllComment':
-				$inputData = $request->get_params();
-
-
-
-				$data = $connection->query('findAll',$inputData);
-				
-
-
-
-				if (isset($inputData['page'])) {
-					$arr = array_chunk($data, 10);
-					$this->send($arr[$inputData['page']]);
-				}
-				else{
-					$arr = array_chunk($data, 10);
-					$this->send($arr[0]);
-				}
-
-				
-				break;
-
-
-
-			case 'getComment':
-				$inputData = $request->get_params();
-
-				$data = $connection->query('findOne',$inputData);
-				
-				$this->send($data);
-				# code...
-				break;
-
-
-
-
-
-			case 'postComment':
-			
-				$inputData = $request->post_params();
-
-
-
-
-				if ($this->filterData($inputData)) {
-					$data = $connection->query('insert',$inputData);
-					if (isset($data)) {
-						$data['status']=200;
-						$this->send($data);
-					}
-					else{
-						$data['status']=0;
-						$this->send($data);
-					}
-				}
-
-				
-
-				
-				# code...
-				break;
-			
-			default:
-				echo "net takogo action";
-				break;
-		}
-
+			return $this->send($res);
+		});
 
 
 	}
-
-
-
 
 
 	public function run()
 	{
-		header('Access-Control-Allow-Origin: *');
-		header('Access-Control-Allow-Headers: *');
-		$this->getData();
-
-
+		$this->router();
 	}
 
 	private function send($data)
 	{
-
-
 		header('Access-Control-Allow-Origin: *');
 		header('Access-Control-Allow-Headers: *');
-		echo json_encode($data);
+
+		echo json_encode($data, JSON_UNESCAPED_UNICODE);
 	}
 }
 

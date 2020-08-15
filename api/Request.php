@@ -10,73 +10,46 @@ class Request
 	public $getParams;
 	public $postParams;
 	public $action;
+	public $params;
+
+
+	function __construct()
+	{
+		$this->url=		$_SERVER['REQUEST_URI'];
+		$this->request=	explode('/', trim($_SERVER['REQUEST_URI'],'/'	));
+	}
 	
-	public function init()
+	public function get($regexp,$callback)
 	{
-		// var_dump($this);
-		
-		$this->url=$_SERVER["REQUEST_URI"];
+		if ($_SERVER['REQUEST_METHOD']=='GET') {
 
-		$this->request=explode('/', $this->url);
+			$regexp = preg_replace('/\//', '\/', $regexp);
 
-		
+			if (preg_match('/'.$regexp.'/', $this->url)) {
 
-
-		if ($this->request[1]!='api') {
-
-			$this->error('404');
-
-			die();
-
+				$callback($this->request);
+			}
 		}
-
-
-	}
-
-	public function get_params()
-	{
-		
-		$this->getParams=$_GET;
-		return $this->getParams;
-	}
-
-	public function post_params()
-	{
-		
-		$this->PostParams=$_POST;
-		return $this->PostParams;
-	}
-
-
-	public function get_action()
-	{
-		if (isset($this->request[2])) {
-			return $this->request[2];
-		}
-	
-		
-	}
-
-
-	public function error($code)
-	{
-		switch ($code) {
-			case 404:
-				echo "404";
-				break;
-			
-			default:
-				echo "unknown";
-				break;
+		else{
+			return;
 		}
 	}
 
+	public function post($regexp,$callback)
+	{
+		if ($_SERVER['REQUEST_METHOD']=='POST') {
 
+			$regexp = preg_replace('/\//', '\/', $regexp);
 
+			if (preg_match('/'.$regexp.'/', $this->url)) {
 
-
-
-
+				$callback($_POST);
+			}
+		}
+		else{
+			return;
+		}
+	}
 }
 
  ?>
